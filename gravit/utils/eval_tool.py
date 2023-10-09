@@ -434,5 +434,7 @@ def get_eval_score(cfg, preds):
             rec = tp[i] / (tp[i]+fn[i])
             f1 = np.nan_to_num(2*pre*rec / (pre+rec))
             str_score += f', (F1@{th}) {f1*100:.2f}%'
-
+    elif eval_type == "VS":
+        pass
+       
     return str_score
