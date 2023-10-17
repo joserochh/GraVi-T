@@ -2,15 +2,15 @@ import os
 import yaml
 import torch
 import argparse
-from torch_geometric.loader import DataLoader
+import h5py
+#from torch_geometric.loader import DataLoader
 from gravit.utils.parser import get_cfg
 from gravit.utils.logger import get_logger
-from gravit.models import build_model
-from gravit.datasets import GraphDataset
-from gravit.utils.formatter import get_formatting_data_dict, get_formatted_preds
+#from gravit.models import build_model
+#from gravit.datasets import GraphDataset
+#from gravit.utils.formatter import get_formatting_data_dict, get_formatted_preds
 from gravit.utils.eval_tool import get_eval_score
 
-import h5py
 # generate random integer values
 from random import seed
 from random import randint, uniform
@@ -20,7 +20,7 @@ from random import randint, uniform
 def gen_random_preds(cfg):
 
     seed(1)
-    preds = {}
+    preds = []
     path_dataset = os.path.join(cfg['root_data'], f'annotations/{cfg["dataset"]}/eccv16_dataset_{cfg["dataset"].lower()}_google_pool5.h5')
     with h5py.File(path_dataset, 'r') as hdf:
         
@@ -36,9 +36,11 @@ def gen_random_preds(cfg):
         for video in rand_selected_vids:
             n_steps = hdf.get(video + '/n_steps')[()]
             scores = []
-            for _ in range(n_steps):
+            samples = []
+            for sample in range(n_steps):
                 scores.append(uniform(0,1))
-            preds[video] = scores
+                samples.append(sample)
+            preds.append([video, samples, scores])
 
         print(f"Selected video: {preds}")
 
@@ -97,10 +99,10 @@ def evaluate(cfg):
     #        preds_all.extend(preds)
 
     #        logger.info(f'[{i:04d}|{num_val_graphs:04d}] processed')
-    preds_all = gen_random_preds(cfg)
-
+    preds_all.extend(gen_random_preds(cfg))
     # Compute the evaluation score
     logger.info('Computing the evaluation score')
+    print(f"{cfg} and {preds_all}")
     eval_score = get_eval_score(cfg, preds_all)
     logger.info(f'{cfg["eval_type"]} evaluation finished: {eval_score}')
 

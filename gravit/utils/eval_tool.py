@@ -15,6 +15,7 @@ import heapq
 from .ava import object_detection_evaluation
 from .ava import standard_fields
 
+import h5py
 
 def compute_average_precision(precision, recall):
   """Compute Average Precision according to the definition in VOCdevkit.
@@ -435,6 +436,21 @@ def get_eval_score(cfg, preds):
             f1 = np.nan_to_num(2*pre*rec / (pre+rec))
             str_score += f', (F1@{th}) {f1*100:.2f}%'
     elif eval_type == "VS":
-        pass
-       
-    return str_score
+        # Copy scores from picks
+
+        path_dataset = os.path.join(cfg['root_data'], f'annotations/{cfg["dataset"]}/eccv16_dataset_{cfg["dataset"].lower()}_google_pool5.h5')
+        with h5py.File(path_dataset, 'r') as hdf:
+           
+           for video, samples, scores in preds:
+              gt_samples = np.array(hdf.get(video + '/picks'))
+              gt_samples = np.append(gt_samples, [hdf.get(video + '/n_frames')[()] + 1])
+              n_samples = hdf.get(video + '/n_steps')[()]
+              idx = 0
+              f_scores = np.empty(n_samples)
+              while ((idx + 1) <= n_samples):
+                  f_scores[gt_samples[idx]:gt_samples[idx + 1]] = scores[idx]
+                  idx = idx + 1
+              
+              print(f_scores) 
+              
+    return 0
