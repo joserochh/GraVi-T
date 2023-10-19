@@ -19,7 +19,7 @@ from random import randint, uniform
 
 def gen_random_preds(cfg):
 
-    seed(1)
+    # seed(1)
     preds = []
     path_dataset = os.path.join(cfg['root_data'], f'annotations/{cfg["dataset"]}/eccv16_dataset_{cfg["dataset"].lower()}_google_pool5.h5')
     with h5py.File(path_dataset, 'r') as hdf:
@@ -29,8 +29,8 @@ def gen_random_preds(cfg):
         rand_selected_vids = []
         amount_to_select = len(video_names)//5
         for _ in range(amount_to_select): 
-            vid_index = randint(0, len(video_names)) 
-            rand_selected_vids.append(video_names.pop(vid_index))
+            video = randint(0, len(video_names) - 1) 
+            rand_selected_vids.append(video_names.pop(video))
         
         # Randomly score video picks
         for video in rand_selected_vids:
@@ -38,11 +38,11 @@ def gen_random_preds(cfg):
             scores = []
             samples = []
             for sample in range(n_steps):
-                scores.append(uniform(0,1))
+                scores.append(uniform(0, 1))
                 samples.append(sample)
             preds.append([video, samples, scores])
 
-        print(f"Selected video: {preds}")
+        # print(f"Selected video: {preds}")
 
     return preds
 
@@ -102,7 +102,7 @@ def evaluate(cfg):
     preds_all.extend(gen_random_preds(cfg))
     # Compute the evaluation score
     logger.info('Computing the evaluation score')
-    print(f"{cfg} and {preds_all}")
+    # print(f"{cfg} and {preds_all}")
     eval_score = get_eval_score(cfg, preds_all)
     logger.info(f'{cfg["eval_type"]} evaluation finished: {eval_score}')
 

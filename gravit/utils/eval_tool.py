@@ -8,14 +8,17 @@ import os
 import numpy as np
 import pandas as pd
 
-from collections import defaultdict
 import csv
 import decimal
 import heapq
+import h5py
+
+from collections import defaultdict
+
 from .ava import object_detection_evaluation
 from .ava import standard_fields
+from .vs import knapsack
 
-import h5py
 
 def compute_average_precision(precision, recall):
   """Compute Average Precision according to the definition in VOCdevkit.
@@ -441,16 +444,61 @@ def get_eval_score(cfg, preds):
         path_dataset = os.path.join(cfg['root_data'], f'annotations/{cfg["dataset"]}/eccv16_dataset_{cfg["dataset"].lower()}_google_pool5.h5')
         with h5py.File(path_dataset, 'r') as hdf:
            
-           for video, samples, scores in preds:
-              gt_samples = np.array(hdf.get(video + '/picks'))
-              gt_samples = np.append(gt_samples, [hdf.get(video + '/n_frames')[()] + 1])
-              n_samples = hdf.get(video + '/n_steps')[()]
-              idx = 0
-              f_scores = np.empty(n_samples)
-              while ((idx + 1) <= n_samples):
-                  f_scores[gt_samples[idx]:gt_samples[idx + 1]] = scores[idx]
-                  idx = idx + 1
-              
-              print(f_scores) 
+            for video, samples, scores in preds:
+                n_samples = hdf.get(video + '/n_steps')[()]
+                n_frames = hdf.get(video + '/n_frames')[()]
+                gt_segments = np.array(hdf.get(video + '/change_points'))
+                gt_samples = np.array(hdf.get(video + '/picks'))
+                user_summaries = np.array(hdf.get(video + '/user_summary'))
+
+                # Take scores from sampled frames to all frames
+                gt_samples = np.append(gt_samples, [n_frames - 1]) # To account for last frames within loop
+                f_scores = np.zeros(n_frames, dtype=np.float32)
+                for idx in range(n_samples):
+                    # print(f"idx {idx} score {scores[idx]}" )
+                    f_scores[gt_samples[idx]:gt_samples[idx + 1]] = scores[idx]
+                
+                # Calculate segments' avg score and length
+                # (Segment_X = video[frame_A:frame_B])
+                n_segments = len(gt_segments)
+                s_scores = np.empty(n_segments)
+                s_lengths = np.empty(n_segments, dtype=np.int32)
+                for idx in range(n_segments):
+                    s_lengths[idx] = gt_segments[idx][1] - gt_segments[idx][0] + 1
+                    s_scores[idx] = (f_scores[gt_segments[idx][0]:gt_segments[idx][1]].mean())
+
+                # Select for max importance
+                final_len = int(n_frames * 0.15) # 15% of total length
+                # print(f"F scores {f_scores} len {len(f_scores)}")
+                # print(f"Final len {final_len}")
+                # print(f"s_scores {s_scores}")
+                # print(f"s_lengths {s_lengths}")
+                segments = knapsack.fill_knapsack(final_len, s_scores, s_lengths)
+
+                # Mark frames from selected segments
+                pred_summary = np.zeros(n_frames, dtype=np.int8)
+                for seg in segments:
+                    pred_summary[gt_segments[seg][0]:gt_segments[seg][1]] = 1
+
+                
+                # Calculate F-Score
+                user_summary = np.zeros(n_frames, dtype=np.int8)
+                n_user_sums = user_summaries.shape[0]
+                f_scores = np.empty(n_user_sums)
+                for u_sum_idx in range(n_user_sums):
+                    user_summary[:n_frames] = user_summaries[u_sum_idx]
+                    tp = pred_summary & user_summary
+
+                    precision = sum(tp)/sum(pred_summary)
+                    recall = sum(tp)/sum(user_summary)
+
+                    if (precision + recall) == 0:
+                        f_scores[u_sum_idx] = 0
+                    else:
+                        f_scores[u_sum_idx] = (2 * precision * recall * 100 / (precision + recall))
+
+                print(f"f score {max(f_scores)}")
+
+                print(segments) 
               
     return 0
