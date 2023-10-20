@@ -2,6 +2,13 @@ import numpy as np
 
 
 def fill_knapsack(final_len, scores, lens):
+    """
+    Given a set of segments, each with a length and an importance value,
+    this method determines which segments to include in a final summary
+    so that total length is less than or equal to final_len and total 
+    added importance is maximized.
+    """
+
     n_segments = len(scores)
 		
     k_table = np.zeros((n_segments + 1, final_len + 1))

@@ -438,13 +438,14 @@ def get_eval_score(cfg, preds):
             rec = tp[i] / (tp[i]+fn[i])
             f1 = np.nan_to_num(2*pre*rec / (pre+rec))
             str_score += f', (F1@{th}) {f1*100:.2f}%'
-    elif eval_type == "VS":
+    elif eval_type == "VS_max" or eval_type == "VS_avg":
         # Copy scores from picks
 
         path_dataset = os.path.join(cfg['root_data'], f'annotations/{cfg["dataset"]}/eccv16_dataset_{cfg["dataset"].lower()}_google_pool5.h5')
         with h5py.File(path_dataset, 'r') as hdf:
            
-            for video, samples, scores in preds:
+            all_f_scores = []
+            for video, _, scores in preds:
                 n_samples = hdf.get(video + '/n_steps')[()]
                 n_frames = hdf.get(video + '/n_frames')[()]
                 gt_segments = np.array(hdf.get(video + '/change_points'))
@@ -479,9 +480,8 @@ def get_eval_score(cfg, preds):
                 pred_summary = np.zeros(n_frames, dtype=np.int8)
                 for seg in segments:
                     pred_summary[gt_segments[seg][0]:gt_segments[seg][1]] = 1
-
                 
-                # Calculate F-Score
+                # Calculate F-Score per user summary
                 user_summary = np.zeros(n_frames, dtype=np.int8)
                 n_user_sums = user_summaries.shape[0]
                 f_scores = np.empty(n_user_sums)
@@ -496,9 +496,14 @@ def get_eval_score(cfg, preds):
                         f_scores[u_sum_idx] = 0
                     else:
                         f_scores[u_sum_idx] = (2 * precision * recall * 100 / (precision + recall))
+                
+                # Calculate one F-Score from all user summaries
+                if eval_type == "VS_max":
+                    all_f_scores.append(max(f_scores))
+                else:
+                    all_f_scores.append(sum(f_scores)/len(f_scores))
 
-                print(f"f score {max(f_scores)}")
-
-                print(segments) 
+        score = sum(all_f_scores)/len(all_f_scores)
+        str_score = f'{score:.2f}%' 
               
-    return 0
+    return str_score

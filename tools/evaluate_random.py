@@ -18,6 +18,9 @@ from random import randint, uniform
 
 
 def gen_random_preds(cfg):
+    """
+    Generates random predictions for a randomly selected ~20% of videos 
+    """
 
     # seed(1)
     preds = []
@@ -32,7 +35,7 @@ def gen_random_preds(cfg):
             video = randint(0, len(video_names) - 1) 
             rand_selected_vids.append(video_names.pop(video))
         
-        # Randomly score video picks
+        # Randomly score video samples
         for video in rand_selected_vids:
             n_steps = hdf.get(video + '/n_steps')[()]
             scores = []
