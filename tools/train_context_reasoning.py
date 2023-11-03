@@ -32,6 +32,7 @@ def train(cfg):
     logger.info('Preparing a model and data loaders')
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     model = build_model(cfg, device)
+    print(path_graphs)
     train_loader = DataLoader(GraphDataset(os.path.join(path_graphs, 'train')), batch_size=cfg['batch_size'], shuffle=True)
     val_loader = DataLoader(GraphDataset(os.path.join(path_graphs, 'val')))
 
@@ -61,7 +62,6 @@ def train(cfg):
                 c = data.c.to(device)
 
             logits = model(x, edge_index, edge_attr, c)
-
             loss = loss_func(logits, y)
             loss.backward()
             loss_sum += loss.item()

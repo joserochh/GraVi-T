@@ -35,7 +35,7 @@ def get_formatting_data_dict(cfg):
                                                       'frame_timestamp': frame_timestamp,
                                                       'person_box': entity['person_box'],
                                                       'person_id': entity['person_id']}
-    else:
+    elif 'AS' in cfg['eval_type']:
         # Build a mapping from action ids to action classes
         data_dict['actions'] = {}
         with open(os.path.join(root_data, 'annotations', dataset, 'mapping.txt')) as f:
@@ -55,12 +55,12 @@ def get_formatted_preds(cfg, logits, g, data_dict):
     """
 
     eval_type = cfg['eval_type']
+    preds = []
     if 'AVA' in eval_type:
         # Compute scores from the logits
         scores_all = torch.sigmoid(logits.detach().cpu()).numpy()
 
         # Iterate over all the nodes and get the formatted predictions for evaluation
-        preds = []
         for scores, global_id in zip(scores_all, g):
             data = data_dict[global_id]
             video_id = data['video_id']
@@ -79,15 +79,14 @@ def get_formatted_preds(cfg, logits, g, data_dict):
                 for action_id, score in enumerate(scores, 1):
                     pred = [video_id, frame_timestamp, x1, y1, x2, y2, action_id, score]
                     preds.append(pred)
-    else:
+    elif 'AS' in eval_type:
         tmp = logits
         if cfg['use_ref']:
             tmp = logits[-1]
 
-        tmp = torch.softmax(tmp.detach().cpu(), dim=1).max(dim=1)[1].tolist()
-
+        # tmp = torch.softmax(tmp.detach().cpu(), dim=1).max(dim=1)[1].tolist()
+        tmp = torch.sigmoid(logits.detach().cpu()).numpy()
         # Upsample the predictions to fairly compare with the ground-truth labels
-        preds = []
         for pred in tmp:
             preds.extend([data_dict['actions'][pred]] * cfg['sample_rate'])
 
@@ -95,5 +94,17 @@ def get_formatted_preds(cfg, logits, g, data_dict):
         (g,) = g
         video_id = data_dict['all_ids'][g]
         preds = [(video_id, preds)]
+
+    elif 'VS' in eval_type:
+        tmp = logits
+        if cfg['use_ref']:
+            tmp = logits[-1]
+
+        tmp = torch.softmax(tmp.detach().cpu(), dim=1).max(dim=1)[1].tolist()
+    
+        print(f"g {g} tmp {tmp}")
+        print(len(tmp))
+        (g,) = g
+        preds.append([f"video_{g}", tmp])
 
     return preds

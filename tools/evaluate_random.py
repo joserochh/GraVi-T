@@ -43,7 +43,7 @@ def gen_random_preds(cfg):
             for sample in range(n_steps):
                 scores.append(uniform(0, 1))
                 samples.append(sample)
-            preds.append([video, samples, scores])
+            preds.append([video, scores])
 
         # print(f"Selected video: {preds}")
 

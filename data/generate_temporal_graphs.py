@@ -56,6 +56,10 @@ def generate_sum_temporal_graph(video_data, args, path_graphs):
                   edge_attr = torch.tensor(edge_attr, dtype=torch.float32),
                   y = torch.tensor(np.array(gtscore, dtype=np.float32)[::args.sample_rate], dtype=torch.long))
 
+    x = torch.tensor(np.array(features, dtype=np.float32), dtype=torch.float32)
+    y = torch.tensor(np.array(gtscore, dtype=np.float32)[::args.sample_rate], dtype=torch.long)
+
+    # print(f"video_id {video_id} x {x.shape} y {y.shape} rate {args.sample_rate}")
     torch.save(graphs, os.path.join(path_graphs, f'{out_folder}/{video_id}.pt'))
 
 

@@ -445,7 +445,8 @@ def get_eval_score(cfg, preds):
         with h5py.File(path_dataset, 'r') as hdf:
            
             all_f_scores = []
-            for video, _, scores in preds:
+            for video, scores in preds:
+                print(video)
                 n_samples = hdf.get(video + '/n_steps')[()]
                 n_frames = hdf.get(video + '/n_frames')[()]
                 gt_segments = np.array(hdf.get(video + '/change_points'))
@@ -488,7 +489,6 @@ def get_eval_score(cfg, preds):
                 for u_sum_idx in range(n_user_sums):
                     user_summary[:n_frames] = user_summaries[u_sum_idx]
                     tp = pred_summary & user_summary
-
                     precision = sum(tp)/sum(pred_summary)
                     recall = sum(tp)/sum(user_summary)
 
