@@ -58,7 +58,6 @@ def evaluate(cfg):
                 c = data.c.to(device)
 
             logits = model(x, edge_index, edge_attr, c)
-
             # Change the format of the model output
             preds = get_formatted_preds(cfg, logits, g, data_dict)
             preds_all.extend(preds)

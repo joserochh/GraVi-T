@@ -16,8 +16,9 @@ def generate_sum_temporal_graph(video_data, args, path_graphs):
     video_id = video_data["global_id"]
     out_folder = video_data["purpose"]
     features = video_data["features"]
-    gtscore = video_data["gtscore"]
-
+    gtscore = np.array([video_data["gtscore"]], dtype=np.float32)[::args.sample_rate]
+    gtscore = gtscore.transpose()
+    
     num_samples = features.shape[0]
     skip = args.skip_factor
     
@@ -54,12 +55,8 @@ def generate_sum_temporal_graph(video_data, args, path_graphs):
                   g = video_id,
                   edge_index = torch.tensor(np.array([node_source, node_target], dtype=np.int64), dtype=torch.long),
                   edge_attr = torch.tensor(edge_attr, dtype=torch.float32),
-                  y = torch.tensor(np.array(gtscore, dtype=np.float32)[::args.sample_rate], dtype=torch.long))
+                  y = torch.tensor(gtscore, dtype=torch.float32))
 
-    x = torch.tensor(np.array(features, dtype=np.float32), dtype=torch.float32)
-    y = torch.tensor(np.array(gtscore, dtype=np.float32)[::args.sample_rate], dtype=torch.long)
-
-    # print(f"video_id {video_id} x {x.shape} y {y.shape} rate {args.sample_rate}")
     torch.save(graphs, os.path.join(path_graphs, f'{out_folder}/{video_id}.pt'))
 
 

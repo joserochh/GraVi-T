@@ -84,8 +84,8 @@ def get_formatted_preds(cfg, logits, g, data_dict):
         if cfg['use_ref']:
             tmp = logits[-1]
 
-        # tmp = torch.softmax(tmp.detach().cpu(), dim=1).max(dim=1)[1].tolist()
-        tmp = torch.sigmoid(logits.detach().cpu()).numpy()
+        tmp = torch.softmax(tmp.detach().cpu(), dim=1).max(dim=1)[1].tolist()
+        
         # Upsample the predictions to fairly compare with the ground-truth labels
         for pred in tmp:
             preds.extend([data_dict['actions'][pred]] * cfg['sample_rate'])
@@ -99,11 +99,11 @@ def get_formatted_preds(cfg, logits, g, data_dict):
         tmp = logits
         if cfg['use_ref']:
             tmp = logits[-1]
-
-        tmp = torch.softmax(tmp.detach().cpu(), dim=1).max(dim=1)[1].tolist()
-    
-        print(f"g {g} tmp {tmp}")
-        print(len(tmp))
+        #print(tmp)
+        #tmp = torch.softmax(tmp.detach().cpu(), dim=1).max(dim=1)[1].tolist()
+        tmp = torch.sigmoid(tmp.squeeze().cpu()).numpy().tolist()
+        #print(f"g {g} tmp {tmp}")
+        #print(len(tmp))
         (g,) = g
         preds.append([f"video_{g}", tmp])
 

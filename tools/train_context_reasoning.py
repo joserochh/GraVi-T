@@ -62,6 +62,11 @@ def train(cfg):
                 c = data.c.to(device)
 
             logits = model(x, edge_index, edge_attr, c)
+            tmp = logits
+            if cfg['use_ref']:
+                tmp = logits[-1]
+
+            tmp = torch.softmax(tmp.detach().cpu(), dim=1).max(dim=1)[1].tolist()
             loss = loss_func(logits, y)
             loss.backward()
             loss_sum += loss.item()

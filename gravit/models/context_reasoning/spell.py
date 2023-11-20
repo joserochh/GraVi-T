@@ -96,7 +96,6 @@ class SPELL(Module):
 
         x = self.batch01(x)
         x = self.relu(x)
-
         edge_index_f = edge_index[:, edge_attr<=0]
         edge_index_b = edge_index[:, edge_attr>=0]
 
