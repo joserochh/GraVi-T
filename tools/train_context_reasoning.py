@@ -8,6 +8,21 @@ from gravit.utils.logger import get_logger
 from gravit.models import build_model, get_loss_func
 from gravit.datasets import GraphDataset
 
+# Tensor board
+from torch.utils.tensorboard import SummaryWriter
+writer = SummaryWriter()
+
+# Ray tunner
+from ray import tune
+from ray.air import session
+from ray.train import Checkpoint
+from ray.tune.schedulers import ASHAScheduler
+
+def load_data(data_dir="./data"):
+    trainset = GraphDataset(os.path.join(data_dir, 'train'))
+    testset = GraphDataset(os.path.join(data_dir, 'val'))
+    print(f"ROCHA trainset size {len(trainset)} data_dir = {data_dir}")
+    return trainset, testset
 
 def train(cfg):
     """
@@ -33,7 +48,9 @@ def train(cfg):
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     model = build_model(cfg, device)
     print(path_graphs)
-    train_loader = DataLoader(GraphDataset(os.path.join(path_graphs, 'train')), batch_size=cfg['batch_size'], shuffle=True)
+    trainset = GraphDataset(os.path.join(path_graphs, 'train'))
+    print(f"ROCHA trainset size {len(trainset)} data_dir = {path_graphs}")
+    train_loader = DataLoader(trainset, batch_size=cfg['batch_size'], shuffle=True)
     val_loader = DataLoader(GraphDataset(os.path.join(path_graphs, 'val')))
 
     # Prepare the experiment
@@ -88,6 +105,8 @@ def train(cfg):
 
         # Log the losses for every epoch
         logger.info(f'Epoch [{epoch:03d}|{cfg["num_epoch"]:03d}] loss_train: {loss_train:.4f}, loss_val: {loss_val:.4f}, best: epoch {epoch_best:03d}')
+        writer.add_scalar("Loss/train", loss_train, epoch)
+        writer.add_scalar("Loss/val", loss_val, epoch)
 
     logger.info('Training finished')
 
@@ -119,4 +138,12 @@ if __name__ == "__main__":
     args = get_args()
     cfg = get_cfg(args)
 
+    data_dir=os.path.join(cfg['root_data'], f'graphs/{cfg["graph_name"]}')
+    if cfg['split'] is not None:
+        data_dir = os.path.join(data_dir, f'split{cfg["split"]}')
+    load_data(data_dir)
+
     train(cfg)
+
+    writer.flush()
+    writer.close()
