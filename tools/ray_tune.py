@@ -26,7 +26,7 @@ def train(config, data_dir):
     """
     Run the training process given the configuration
     """
-
+    print(f"############## CWD {os.getcwd()}")
     # Input and output paths
     path_result = os.path.join(config['root_result'], f'{config["exp_name"]}')
     os.makedirs(path_result, exist_ok=True)
@@ -49,15 +49,16 @@ def train(config, data_dir):
     train_loader = DataLoader(trainset, batch_size=config['batch_size'], shuffle=True)
     val_loader = DataLoader(testset)
 
-    logger.info('Looking at Checkpoint')
-    checkpoint = session.get_checkpoint()
-    if checkpoint:
-        checkpoint_state = checkpoint.to_dict()
-        start_epoch = checkpoint_state["epoch"]
-        model.load_state_dict(checkpoint_state["net_state_dict"])
-        optimizer.load_state_dict(checkpoint_state["optimizer_state_dict"])
-    else:
-        start_epoch = 0
+    #logger.info('Looking at Checkpoint')
+    #checkpoint = session.get_checkpoint()
+    #if checkpoint:
+    #    checkpoint_state = checkpoint.to_dict()
+    #    start_epoch = checkpoint_state["epoch"]
+    #    model.load_state_dict(checkpoint_state["net_state_dict"])
+    #    optimizer.load_state_dict(checkpoint_state["optimizer_state_dict"])
+    #else:
+
+    start_epoch = 0
         
     # Prepare the experiment
     loss_func = get_loss_func(config)
@@ -103,16 +104,15 @@ def train(config, data_dir):
         # Get the validation loss
         loss_val, val_steps = val(val_loader, config['use_spf'], model, device, loss_func_val)
 
-        checkpoint_data = {
-            "epoch": epoch,
-            "net_state_dict": model.state_dict(),
-            "optimizer_state_dict": optimizer.state_dict(),
-        }
-        checkpoint = Checkpoint.from_dict(checkpoint_data)
+        #checkpoint_data = {
+        #    "epoch": epoch,
+        #    "net_state_dict": model.state_dict(),
+        #    "optimizer_state_dict": optimizer.state_dict(),
+        #}
+        #checkpoint = Checkpoint.from_dict(checkpoint_data)
 
         session.report(
-            {"loss": loss_val / val_steps},
-            checkpoint=checkpoint,
+            {"loss": loss_val / val_steps}
         )
 
         # Save the best-performing checkpoint
@@ -159,6 +159,7 @@ if __name__ == "__main__":
     data_dir=os.path.join(config['root_data'], f'graphs/{config["graph_name"]}')
     if config['split'] is not None:
         data_dir = os.path.join(data_dir, f'split{config["split"]}')
+        data_dir = os.path.realpath(data_dir)
 
     ray.init()
     print("ray.nodes()")
@@ -173,7 +174,7 @@ if __name__ == "__main__":
     config["channel1"] = tune.choice([2**i for i in range(5,10)])
     config["channel2"] = tune.choice([2**i for i in range(5,10)])
     config["lr"] = tune.loguniform(1e-6, 1e-2)
-    config["wd"] = tune.loguniform(1e-7, 1e-3),
+    config["wd"] = tune.loguniform(1e-7, 1e-3)
 
     print(f"Data dir {data_dir}")
     scheduler = ASHAScheduler(
@@ -185,7 +186,7 @@ if __name__ == "__main__":
     )
     result = tune.run(
         partial(train, data_dir=data_dir),
-        resources_per_trial={"cpu": 1, "gpu": 0},
+        resources_per_trial={"cpu": 0, "gpu": 1},
         config=config,
         num_samples=10,
         scheduler=scheduler,
