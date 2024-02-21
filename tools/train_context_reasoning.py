@@ -7,6 +7,8 @@ from gravit.utils.parser import get_args, get_cfg
 from gravit.utils.logger import get_logger
 from gravit.models import build_model, get_loss_func
 from gravit.datasets import GraphDataset
+from gravit.utils.formatter import get_formatting_data_dict, get_formatted_preds
+from gravit.utils.eval_tool import get_eval_score
 
 # Tensor board
 from torch.utils.tensorboard import SummaryWriter
@@ -95,7 +97,7 @@ def train(cfg):
         loss_train = loss_sum / len(train_loader)
 
         # Get the validation loss
-        loss_val = val(val_loader, cfg['use_spf'], model, device, loss_func_val)
+        loss_val, score = val(val_loader, cfg['use_spf'], model, device, loss_func_val)
 
         # Save the best-performing checkpoint
         if loss_val < min_loss_val:
@@ -104,22 +106,27 @@ def train(cfg):
             torch.save(model.state_dict(), os.path.join(path_result, 'ckpt_best.pt'))
 
         # Log the losses for every epoch
-        logger.info(f'Epoch [{epoch:03d}|{cfg["num_epoch"]:03d}] loss_train: {loss_train:.4f}, loss_val: {loss_val:.4f}, best: epoch {epoch_best:03d}')
+        logger.info(f'Epoch [{epoch:03d}|{cfg["num_epoch"]:03d}] loss_train: {loss_train:.4f}, loss_val: {loss_val:.4f}, score: {score} best: epoch {epoch_best:03d}')
         writer.add_scalar("Loss/train", loss_train, epoch)
         writer.add_scalar("Loss/val", loss_val, epoch)
 
     logger.info('Training finished')
-
+    logger.info(model)
 
 def val(val_loader, use_spf, model, device, loss_func):
     """
     Run a single validation process
     """
 
+    # Load the feature files to properly format the evaluation results
+    data_dict = get_formatting_data_dict(cfg)
+
     model.eval()
     loss_sum = 0
+    preds_all = []
     with torch.no_grad():
         for data in val_loader:
+            g = data.g.tolist()
             x, y = data.x.to(device), data.y.to(device)
             edge_index = data.edge_index.to(device)
             edge_attr = data.edge_attr.to(device)
@@ -131,7 +138,12 @@ def val(val_loader, use_spf, model, device, loss_func):
             loss = loss_func(logits, y)
             loss_sum += loss.item()
 
-    return loss_sum / len(val_loader)
+            # Change the format of the model output
+            preds = get_formatted_preds(cfg, logits, g, data_dict)
+            preds_all.extend(preds)
+
+    eval_score = get_eval_score(cfg, preds_all)
+    return loss_sum / len(val_loader), eval_score
 
 
 if __name__ == "__main__":

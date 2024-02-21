@@ -2,6 +2,7 @@ import os
 import yaml
 import torch
 import argparse
+import numpy as np
 from torch_geometric.loader import DataLoader
 from gravit.utils.parser import get_cfg
 from gravit.utils.logger import get_logger
@@ -18,10 +19,12 @@ def evaluate(cfg):
 
     # Input and output paths
     path_graphs = os.path.join(cfg['root_data'], f'graphs/{cfg["graph_name"]}')
+
     if 'split' in cfg:
         path_graphs = os.path.join(path_graphs, f'split{cfg["split"]}')
     path_result = os.path.join(cfg['root_result'], f'{cfg["exp_name"]}')
-
+    print(path_result)
+    print(path_graphs)
     # Prepare the logger
     logger = get_logger(path_result, file_name='eval')
     logger.info(cfg['exp_name'])
@@ -30,6 +33,16 @@ def evaluate(cfg):
     logger.info('Preparing a model and data loaders')
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     model = build_model(cfg, device)
+
+    # Init
+    x_dummy = torch.tensor(np.array(np.random.rand(10, 1024), dtype=np.float32), dtype=torch.float32).to(device)
+    node_source_dummy = np.random.randint(10, size=5)
+    node_target_dummy = np.random.randint(10, size=5)
+    edge_index_dummy = torch.tensor(np.array([node_source_dummy, node_target_dummy], dtype=np.int64), dtype=torch.long).to(device)
+    signs = np.sign(node_source_dummy - node_target_dummy)
+    edge_attr_dummy = torch.tensor(signs, dtype=torch.float32).to(device)
+    model(x_dummy, edge_index_dummy, edge_attr_dummy, None)
+
     val_loader = DataLoader(GraphDataset(os.path.join(path_graphs, 'val')))
     num_val_graphs = len(val_loader)
 
@@ -66,8 +79,8 @@ def evaluate(cfg):
 
     # Compute the evaluation score
     logger.info('Computing the evaluation score')
-    eval_score = get_eval_score(cfg, preds_all)
-    logger.info(f'{cfg["eval_type"]} evaluation finished: {eval_score}')
+    eval_score, tau, rho = get_eval_score(cfg, preds_all)
+    logger.info(f'{cfg["eval_type"]} evaluation finished: F-1 = {eval_score}, Tau = {tau}, Rho = {rho}')
 
 
 if __name__ == "__main__":
@@ -86,9 +99,11 @@ if __name__ == "__main__":
 
     path_result = os.path.join(args.root_result, args.exp_name)
     if not os.path.isdir(path_result):
-        raise ValueError(f'Please run the training experiment "{args.exp_name}" first')
+        raise ValueError(f'Please run the training experiment "{path_result}" first')
 
     args.cfg = os.path.join(path_result, 'cfg.yaml')
     cfg = get_cfg(args)
 
+    cfg['root_data'] = os.path.realpath(cfg['root_data'])
+    cfg['root_result'] = os.path.realpath(cfg['root_result'])
     evaluate(cfg)

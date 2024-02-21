@@ -18,7 +18,7 @@ from collections import defaultdict
 from .ava import object_detection_evaluation
 from .ava import standard_fields
 from .vs import knapsack
-
+from scipy import stats
 
 def compute_average_precision(precision, recall):
   """Compute Average Precision according to the definition in VOCdevkit.
@@ -445,8 +445,9 @@ def get_eval_score(cfg, preds):
         with h5py.File(path_dataset, 'r') as hdf:
            
             all_f_scores = []
+            all_taus = []
+            all_rhos = []
             for video, scores in preds:
-                print(video)
                 n_samples = hdf.get(video + '/n_steps')[()]
                 n_frames = hdf.get(video + '/n_frames')[()]
                 gt_segments = np.array(hdf.get(video + '/change_points'))
@@ -486,8 +487,12 @@ def get_eval_score(cfg, preds):
                 user_summary = np.zeros(n_frames, dtype=np.int8)
                 n_user_sums = user_summaries.shape[0]
                 f_scores = np.empty(n_user_sums)
+                taus = np.empty(n_user_sums)
+                rhos = np.empty(n_user_sums)
                 for u_sum_idx in range(n_user_sums):
                     user_summary[:n_frames] = user_summaries[u_sum_idx]
+
+                    # F-1
                     tp = pred_summary & user_summary
                     precision = sum(tp)/sum(pred_summary)
                     recall = sum(tp)/sum(user_summary)
@@ -496,14 +501,28 @@ def get_eval_score(cfg, preds):
                         f_scores[u_sum_idx] = 0
                     else:
                         f_scores[u_sum_idx] = (2 * precision * recall * 100 / (precision + recall))
-                
+
+                    # Tau
+                    taus[u_sum_idx], _ = stats.kendalltau(x1, x2)
+                    print(f'Kendall {taus[u_sum_idx]}')
+                    # Rho
+                    rhos[u_sum_idx], _ = stats.spearmanr(pred_summary, user_summary)
+                    print(f'Spearman {rhos[u_sum_idx]}')
+
                 # Calculate one F-Score from all user summaries
                 if eval_type == "VS_max":
                     all_f_scores.append(max(f_scores))
+                    all_taus.append(max(taus))
+                    all_rhos.append(max(rhos))
                 else:
-                    all_f_scores.append(sum(f_scores)/len(f_scores))
+                    all_f_scores.append(sum(f_scores) / n_user_sums)
+                    all_taus.append(sum(taus) / n_user_sums)
+                    all_rhos.append(sum(rhos) / n_user_sums)
 
         score = sum(all_f_scores)/len(all_f_scores)
-        str_score = f'{score:.2f}%' 
-              
-    return str_score
+        tau = sum(all_taus)/len(all_taus)
+        rho = sum(all_rhos)/len(all_rhos)
+        #str_score = f'{score:.2f}%'
+        str_score = score
+
+    return score, tau, rho
