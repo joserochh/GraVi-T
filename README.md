@@ -40,11 +40,12 @@ We want to note that our method has recently won many challenges, including the 
 > Numbers in parentheses indicate the scores without using the suggested graph learning method.
 
 ### Video Summarization (Datasets: SumMe & TVSum)
-|  Model         |              Feature              |      Kendall's Tau      |     Spearman's Rho      | F1-Score (%) |
-|:---------------|:---------------------------------:|:-----------------------:|:-----------------------:|:------------:|
-|  SPELL (Ours)  | eccv16_dataset_summe_google_pool5 | **0.12** (up from 0.09) | **0.16** (up from 0.12) |   **46.0**   |
-|  SPELL (Ours)  | eccv16_dataset_tvsum_google_pool5 | **0.30** (up from 0.27) | **0.42** (up from 0.39) |   **58.2**   |
-> Numbers in parentheses indicate the scores without using the suggested graph learning method.
+|  Model         |              Feature              | [Kendall's Tau](https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.kendalltau.html#scipy.stats.kendalltau)* | [Spearman's Rho](https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.spearmanr.html#scipy.stats.spearmanr)* |
+|:---------------|:---------------------------------:|:-------------------------------------------------------------------------------------------------------------------------:|:------------------------------------------------------------------------------------------------------------------------:|
+|  SPELL (Ours)  | eccv16_dataset_summe_google_pool5 |                                                  **0.12** (up from 0.09)                                                  |                                                 **0.16** (up from 0.12)                                                  |
+|  SPELL (Ours)  | eccv16_dataset_tvsum_google_pool5 |                                                  **0.30** (up from 0.27)                                                  |                                                 **0.42** (up from 0.39)                                                  |
+> Numbers in parentheses indicate the scores without using the suggested graph learning method.\
+>  *Correlation metric between predicted frame importance and ground truth. 
 
 ## Requirements
 Preliminary requirements:
