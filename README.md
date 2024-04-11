@@ -129,7 +129,7 @@ Please refer to the instructions in [GETTING_STARTED_AL.md](docs/GETTING_STARTED
 Please refer to the instructions in [GETTING_STARTED_AS.md](docs/GETTING_STARTED_AS.md).
 
 ## Getting Started (Video Summarization)
-Please refer to the instructions in [GETTING_STARTED_VS.md](docs/GETTING_STARTED_AS.md).
+Please refer to the instructions in [GETTING_STARTED_VS.md](docs/GETTING_STARTED_VS.md).
 
 ## Contributor
 GraVi-T is written and maintained by [Kyle Min](https://github.com/kylemin) (from version 1.0.0 to 1.1.0). Please contact me if you want to become a contributor to this library.

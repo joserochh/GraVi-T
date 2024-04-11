@@ -57,7 +57,7 @@ python tools/evaluate.py --exp_name SPELL_VS_TVSum_default --eval_type VS_avg --
 This will print the evaluation scores.
 
 #### Step 3: Evaluation Alternative
-You also get average results from all splits:
+You can also get average results from all splits:
 
 On SumMe:
 ```
