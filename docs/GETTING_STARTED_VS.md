@@ -67,3 +67,6 @@ On TVSum:
 ```
 python tools/evaluate.py --exp_name SPELL_VS_TVSum_default --eval_type VS_avg --all_splits
 ```
+#### Note:
+
+You can use bash scripts from `gravit/utils/vs/` to train models on all the splits and get evaluation metrics for TVSum and SumMe.
